@@ -6,4 +6,5 @@ build/
 *.key
 convert_*
 GoldPrice.app
+.DS_Store
 
