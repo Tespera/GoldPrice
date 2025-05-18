@@ -1,9 +1,0 @@
-node_modules/
-build/
-.build/*
-*.log
-.env*
-*.key
-convert_*
-GoldPrice.app
-.DS_Store
