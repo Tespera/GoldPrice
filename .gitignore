@@ -7,4 +7,5 @@ build/
 convert_*
 GoldPrice.app
 .DS_Store
+.gitignore
 
