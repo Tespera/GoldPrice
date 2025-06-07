@@ -13,9 +13,11 @@ struct GoldPriceApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusBarController: StatusBarController?
+    private var statusBarItem: NSStatusItem!
+    private var statusBarController: StatusBarController!
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 初始化状态栏控制器
         statusBarController = StatusBarController()
     }
 }
