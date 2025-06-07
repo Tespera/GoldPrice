@@ -36,7 +36,9 @@ struct GoldPriceView: View {
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.gray)
                 } else {
-                    Text(String(format: "G%.2f", dataService.currentPrice))
+                    // 根据数据源类型决定显示格式，界面中不需要固定宽度
+                    let formatString = dataService.currentSource == .jdFinance ? "G%.2f" : "G%.0f"
+                    Text(String(format: formatString, dataService.currentPrice))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.black)
                 }
@@ -79,53 +81,34 @@ struct GoldPriceView: View {
                 .foregroundColor(.gray)
                 .padding(.horizontal, 16)
             
-            VStack(spacing: 8) {
-                // 京东金融
-                Button(action: {
-                    dataService.setDataSource(.jdFinance)
-                }) {
-                    HStack {
-                        Text("京东金融")
-                            .font(.system(size: 14))
-                            .foregroundColor(.black)
-                        
-                        Spacer()
-                        
-                        if dataService.currentSource == .jdFinance {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(GoldPriceSource.allCases, id: \.self) { source in
+                        Button(action: {
+                            dataService.setDataSource(source)
+                        }) {
+                            HStack {
+                                Text(source.rawValue)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.black)
+                                
+                                Spacer()
+                                
+                                if dataService.currentSource == source {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(dataService.currentSource == source ? Color.blue.opacity(0.1) : Color.clear)
+                            .cornerRadius(4)
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(dataService.currentSource == .jdFinance ? Color.blue.opacity(0.1) : Color.clear)
-                    .cornerRadius(4)
                 }
-                .buttonStyle(PlainButtonStyle())
-
-                // 水贝黄金
-                Button(action: {
-                    dataService.setDataSource(.shuibeiGold)
-                }) {
-                    HStack {
-                        Text("水贝黄金")
-                            .font(.system(size: 14))
-                            .foregroundColor(.black)
-                        
-                        Spacer()
-                        
-                        if dataService.currentSource == .shuibeiGold {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(dataService.currentSource == .shuibeiGold ? Color.blue.opacity(0.1) : Color.clear)
-                    .cornerRadius(4)
-                }
-                .buttonStyle(PlainButtonStyle())
             }
+            .frame(maxHeight: 200)
             
             Spacer()
             
