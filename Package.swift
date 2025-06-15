@@ -28,7 +28,6 @@ let package = Package(
                 "Archives/",
                 "GoldPriceFeatures.md",
                 ".git/",
-                ".gitignore",
                 ".DS_Store",
                 ".cursor/",
                 ".vscode/",
