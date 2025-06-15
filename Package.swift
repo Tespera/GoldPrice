@@ -24,10 +24,14 @@ let package = Package(
                 ".DS_Store",
                 ".cursor/",
                 ".vscode/",
+<<<<<<< HEAD
                 "*.dmg",
                 "*.md",
                 "*.sh",
                 "*.md"
+=======
+                "*.dmg"
+>>>>>>> dev
             ]
         )
     ]
