@@ -18,10 +18,12 @@ let package = Package(
             exclude: [
                 "README.md",
                 "README_GITHUB_SYNC.md",
+                "github_sync_example.md",
                 "Info.plist",
                 "build_app.sh",
                 "create_dmg.sh",
                 "sync_to_github.sh",
+                "sync_to_github_auto.sh",
                 "Assets/",
                 "Archives/",
                 "GoldPriceFeatures.md",
