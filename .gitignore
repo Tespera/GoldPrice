@@ -6,11 +6,11 @@ build/
 .cursor/*
 .env*
 *.key
-convert_*
 GoldPrice.app
 .DS_Store
 .gitignore
 *.zip
+*.dmg
 .vscode/
 .vscode/*
 GoldPriceFeatures.md
