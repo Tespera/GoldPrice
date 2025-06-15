@@ -32,7 +32,7 @@ struct GoldPriceView: View {
                 Spacer()
                 
                 if dataService.priceNotAvailable {
-                    Text("N/A")
+                    Text("G0.00")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.gray)
                 } else {

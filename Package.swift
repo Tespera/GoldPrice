@@ -17,8 +17,20 @@ let package = Package(
             path: ".",
             exclude: [
                 "README.md",
+                "README_GITHUB_SYNC.md",
                 "Info.plist",
-                "Makefile"
+                "build_app.sh",
+                "create_dmg.sh",
+                "sync_to_github.sh",
+                "Assets/",
+                "Archives/",
+                "GoldPriceFeatures.md",
+                ".git/",
+                ".gitignore",
+                ".DS_Store",
+                ".cursor/",
+                ".vscode/",
+                "*.dmg"
             ]
         )
     ]

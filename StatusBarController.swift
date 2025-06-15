@@ -13,12 +13,11 @@ class StatusBarController {
     
     init() {
         statusBar = NSStatusBar.system
-        statusItem = statusBar.statusItem(withLength: 60)  // 设置固定宽度，足够显示"G9999.99"
+        statusItem = statusBar.statusItem(withLength: 60)  // 设置状态栏固定宽度
         
         // 初始化数据服务
         dataService = GoldPriceService()
         
-        // 创建弹出窗口
         popover = NSPopover()
         popover.contentSize = NSSize(width: 300, height: 450)
         popover.behavior = .transient
@@ -26,15 +25,12 @@ class StatusBarController {
         
         // 设置状态栏按钮
         if let button = statusItem.button {
-            button.title = "N/A"
+            button.title = "G0.00"
             button.action = #selector(togglePopover(_:))
             button.target = self
         }
         
-        // 预加载品牌列表（在设置菜单之前）
         dataService.fetchBrandList()
-        
-        // 设置右键菜单
         setupMenu()
         
         // 订阅价格更新
@@ -43,7 +39,7 @@ class StatusBarController {
             .sink { [weak self] price in
                 if let button = self?.statusItem.button {
                     if self?.dataService.priceNotAvailable == true {
-                        button.title = "N/A"
+                        button.title = "G0.00"
                     } else {
                         // 京东金融显示小数，其他金店显示整数
                         if self?.dataService.currentSource == .jdFinance {
@@ -62,7 +58,7 @@ class StatusBarController {
             .sink { [weak self] notAvailable in
                 if let button = self?.statusItem.button {
                     if notAvailable {
-                        button.title = "N/A"
+                        button.title = "G0.00"
                     } else if let price = self?.dataService.currentPrice {
                         // 京东金融显示小数，其他金店显示整数
                         if self?.dataService.currentSource == .jdFinance {
@@ -99,8 +95,7 @@ class StatusBarController {
             }
             .store(in: &cancellables)
         
-        // 不再需要品牌相关的订阅，因为每个金店都是独立的数据源
-        
+
         // 开始获取数据
         dataService.startFetching()
     }
@@ -218,8 +213,8 @@ class StatusBarController {
             attributedString.append(unitAttr)
             
         } else {
-            // N/A状态
-            let naAttr = NSAttributedString(string: "  N/A", attributes: [
+            // G0.00状态
+            let naAttr = NSAttributedString(string: "  G0.00", attributes: [
                 .font: priceFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ])

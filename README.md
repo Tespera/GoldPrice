@@ -5,6 +5,14 @@
 GoldPrice 是一个 MacOS 状态栏应用，用于实时显示黄金价格。应用直接在状态栏显示最新的黄金价格（人民币），京东涵盖京东金融实时金价、水贝黄金当天金价和全国各大知名品牌金店的当天金价。
 
 
+## 效果展示
+- 浅色模式
+![Light](./Assets/Light.png)
+
+
+- 深色模式
+![Dark](./Assets/Dark.png)
+
 
 ## 功能特点
 
@@ -27,19 +35,17 @@ GoldPrice 是一个 MacOS 状态栏应用，用于实时显示黄金价格。应
 git clone https://github.com/Tespera/GoldPrice.git
 ```
 
-### 使用 Makefile
-
-项目提供了 Makefile 来简化构建和运行过程：
+### 构建与运行
 
 ```bash
 # 构建应用
-make build
+swift build
 
 # 运行应用
-make run
+swift run
 
 # 清理构建文件
-make clean
+swift clean
 ```
 
 ### 手动构建
@@ -61,9 +67,6 @@ swift build -c release
 - `GoldPriceService.swift` - 数据获取服务，负责从各个数据源获取黄金价格
 - `GoldPriceView.swift` - 详情视图，显示价格信息、数据源选择和设置选项
 - `Package.swift` - Swift Package Manager 配置文件
-- `Makefile` - 构建和运行脚本
-- `build_app.sh` / `build_app_simple.sh` - 应用打包脚本
-
 
 
 ## 技术特性
