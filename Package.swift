@@ -16,18 +16,16 @@ let package = Package(
             dependencies: [],
             path: ".",
             exclude: [
-                "README.md",
                 "Info.plist",
-                "build_app.sh",
-                "create_dmg.sh",
                 "Assets/",
                 "Archives/",
-                "GoldPriceFeatures.md",
                 ".git/",
                 ".DS_Store",
                 ".cursor/",
                 ".vscode/",
-                "*.dmg"
+                "*.dmg",
+                "*.sh",
+                "*.md"
             ]
         )
     ]
