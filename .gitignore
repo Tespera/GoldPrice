@@ -14,8 +14,9 @@ GoldPrice.app
 .vscode/
 .vscode/*
 GoldPriceFeatures.md
-build_app.sh
-create_dmg.sh
 sync_to_github.sh
+sync_to_github_auto.sh
+README_GITHUB_SYNC.md
+github_sync_example.md
 Archives/
 Archives/*
