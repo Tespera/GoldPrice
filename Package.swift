@@ -19,12 +19,12 @@ let package = Package(
                 "Info.plist",
                 "Assets/",
                 "Archives/",
+                "Build/",
                 ".git/",
                 ".DS_Store",
                 ".cursor/",
                 ".vscode/",
                 "*.dmg",
-                "*.sh",
                 "*.md"
             ]
         )
