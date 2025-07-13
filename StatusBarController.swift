@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 
-class StatusBarController {
+class StatusBarController: NSObject, NSMenuDelegate {
     private var statusBar: NSStatusBar
     private var statusItem: NSStatusItem
     private var popover: NSPopover
@@ -11,7 +11,7 @@ class StatusBarController {
     private var cancellables = Set<AnyCancellable>()
     private var sourceMenuItems: [GoldPriceSource: NSMenuItem] = [:]
     
-    init() {
+    override init() {
         statusBar = NSStatusBar.system
         statusItem = statusBar.statusItem(withLength: 60)  // 设置状态栏固定宽度
         
@@ -22,6 +22,8 @@ class StatusBarController {
         popover.contentSize = NSSize(width: 300, height: 450)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: GoldPriceView(dataService: dataService))
+        
+        super.init()
         
         // 设置状态栏按钮
         if let button = statusItem.button {
@@ -120,9 +122,11 @@ class StatusBarController {
     
     private func setupMenu() {
         let menu = NSMenu()
+        menu.delegate = self
 
         // 数据源子菜单
         let sourcesMenu = NSMenu()
+        sourcesMenu.delegate = self
 
         // 添加所有数据源选项（按照枚举顺序）
         for source in GoldPriceSource.allCases {
@@ -250,6 +254,15 @@ class StatusBarController {
     private func updateMenuPrices() {
         for (source, menuItem) in sourceMenuItems {
             setMenuItemAttributedTitle(menuItem, for: source)
+        }
+    }
+    
+    // MARK: - NSMenuDelegate
+    func menuWillOpen(_ menu: NSMenu) {
+        // 当数据源菜单打开时，立即刷新一次数据
+        if menu == statusItem.menu?.item(withTitle: "数据源")?.submenu {
+            print("数据源菜单打开，立即刷新数据")
+            dataService.forceRefreshAllSources()
         }
     }
 

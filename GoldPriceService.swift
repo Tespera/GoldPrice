@@ -128,6 +128,15 @@ class GoldPriceService: ObservableObject {
         }
     }
     
+    // 强制刷新所有数据源（忽略时间限制）
+    func forceRefreshAllSources() {
+        for source in GoldPriceSource.allCases {
+            fetchPriceForSource(source)
+        }
+        // 更新金店刷新时间，确保下次正常刷新
+        lastBrandStoreFetchTime = Date()
+    }
+    
     func fetchAllSourcesPricesWithDifferentIntervals() {
         let currentTime = Date()
         
