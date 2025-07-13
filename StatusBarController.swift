@@ -217,8 +217,8 @@ class StatusBarController: NSObject, NSMenuDelegate {
             attributedString.append(unitAttr)
             
         } else {
-            // G0.00状态
-            let naAttr = NSAttributedString(string: "  G0.00", attributes: [
+            // 无数据状态
+            let naAttr = NSAttributedString(string: "  0.00 元/克", attributes: [
                 .font: priceFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ])
