@@ -51,11 +51,9 @@ extension GoldPriceSource {
 }
 
 class GoldPriceService: ObservableObject {
-    @Published var currentPrice: Double = 0.0
     @Published var currentSource: GoldPriceSource = .jdFinance
     @Published var lastUpdateTime: Date = Date()
     @Published var isLoading: Bool = false
-    @Published var priceNotAvailable: Bool = true
     @Published var availableBrands: [GoldBrand] = []
     @Published var selectedBrand: GoldBrand?
     
@@ -101,13 +99,11 @@ class GoldPriceService: ObservableObject {
     
     func setDataSource(_ source: GoldPriceSource) {
         self.currentSource = source
-        self.priceNotAvailable = false
         fetchGoldPrice()
     }
     
     func fetchGoldPrice() {
         isLoading = true
-        priceNotAvailable = false
         
         switch currentSource {
         case .jdFinance:
@@ -212,10 +208,8 @@ class GoldPriceService: ObservableObject {
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
                         if targetSource == nil || sourceToUpdate == self.currentSource {
-                            self.currentPrice = price
                             self.lastUpdateTime = Date()
                             self.isLoading = false
-                            self.priceNotAvailable = false
                         }
                         print("京东金融金价获取成功: \(price)")
                     }
@@ -239,7 +233,6 @@ class GoldPriceService: ObservableObject {
             
             if targetSource == nil || sourceToUpdate == self.currentSource {
                 self.isLoading = false
-                self.priceNotAvailable = true
             }
         }
     }
@@ -279,10 +272,8 @@ class GoldPriceService: ObservableObject {
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
                         if targetSource == nil || sourceToUpdate == self.currentSource {
-                            self.currentPrice = price
                             self.lastUpdateTime = Date()
                             self.isLoading = false
-                            self.priceNotAvailable = false
                         }
                         print("水贝金价获取成功: \(price)")
                     }
@@ -296,10 +287,8 @@ class GoldPriceService: ObservableObject {
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
                         if targetSource == nil || sourceToUpdate == self.currentSource {
-                            self.currentPrice = price
                             self.lastUpdateTime = Date()
                             self.isLoading = false
-                            self.priceNotAvailable = false
                         }
                         print("水贝金价获取成功: \(price)")
                     }
@@ -394,10 +383,8 @@ class GoldPriceService: ObservableObject {
                     self.allSourcePriceAvailability[sourceToUpdate] = true
                     
                     if targetSource == nil || sourceToUpdate == self.currentSource {
-                        self.currentPrice = price
                         self.lastUpdateTime = Date()
                         self.isLoading = false
-                        self.priceNotAvailable = false
                     }
                     print("中国黄金金价获取成功: \(price)")
                 }
@@ -498,10 +485,8 @@ class GoldPriceService: ObservableObject {
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
                         if targetSource == nil || sourceToUpdate == self.currentSource {
-                            self.currentPrice = goldPrice
                             self.lastUpdateTime = Date()
                             self.isLoading = false
-                            self.priceNotAvailable = false
                         }
                         print("\(source.rawValue)金价获取成功: \(goldPrice)")
                     }

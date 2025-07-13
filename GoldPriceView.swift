@@ -31,16 +31,18 @@ struct GoldPriceView: View {
                 
                 Spacer()
                 
-                if dataService.priceNotAvailable {
+                if let isAvailable = dataService.allSourcePriceAvailability[dataService.currentSource], 
+                   isAvailable,
+                   let price = dataService.allSourcePrices[dataService.currentSource] {
+                    // 根据数据源类型决定显示格式，界面中不需要固定宽度
+                    let formatString = dataService.currentSource == .jdFinance ? "G%.2f" : "G%.0f"
+                    Text(String(format: formatString, price))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.black)
+                } else {
                     Text("G0.00")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.gray)
-                } else {
-                    // 根据数据源类型决定显示格式，界面中不需要固定宽度
-                    let formatString = dataService.currentSource == .jdFinance ? "G%.2f" : "G%.0f"
-                    Text(String(format: formatString, dataService.currentPrice))
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.black)
                 }
             }
             .padding(.horizontal, 16)
