@@ -7,7 +7,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private var dataService: GoldPriceService
-    private var timer: Timer?
+    private var statusBarUpdateTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var sourceMenuItems: [GoldPriceSource: NSMenuItem] = [:]
     
@@ -35,49 +35,12 @@ class StatusBarController: NSObject, NSMenuDelegate {
         dataService.fetchBrandList()
         setupMenu()
         
-        // 订阅价格更新
-        dataService.$currentPrice
-            .receive(on: RunLoop.main)
-            .sink { [weak self] price in
-                if let button = self?.statusItem.button {
-                    if self?.dataService.priceNotAvailable == true {
-                        button.title = "G0.00"
-                    } else {
-                        // 京东金融显示小数，其他金店显示整数
-                        if self?.dataService.currentSource == .jdFinance {
-                            button.title = "G\(String(format: "%.2f", price))"
-                        } else {
-                            button.title = "G\(Int(price))"
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
-        
-        // 订阅价格可用性状态
-        dataService.$priceNotAvailable
-            .receive(on: RunLoop.main)
-            .sink { [weak self] notAvailable in
-                if let button = self?.statusItem.button {
-                    if notAvailable {
-                        button.title = "G0.00"
-                    } else if let price = self?.dataService.currentPrice {
-                        // 京东金融显示小数，其他金店显示整数
-                        if self?.dataService.currentSource == .jdFinance {
-                            button.title = "G\(String(format: "%.2f", price))"
-                        } else {
-                            button.title = "G\(Int(price))"
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
-        
         // 订阅数据源更新
         dataService.$currentSource
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.setupMenu()
+                self?.updateStatusBarDisplay()
             }
             .store(in: &cancellables)
         
@@ -86,6 +49,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.updateMenuPrices()
+                self?.updateStatusBarDisplay()
             }
             .store(in: &cancellables)
         
@@ -94,12 +58,51 @@ class StatusBarController: NSObject, NSMenuDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.updateMenuPrices()
+                self?.updateStatusBarDisplay()
             }
             .store(in: &cancellables)
         
-
         // 开始获取数据
         dataService.startFetching()
+        
+        // 启动状态栏实时更新定时器（每100毫秒更新一次，确保实时显示）
+        startStatusBarUpdateTimer()
+    }
+    
+    deinit {
+        stopStatusBarUpdateTimer()
+    }
+    
+    private func startStatusBarUpdateTimer() {
+        statusBarUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.updateStatusBarDisplay()
+        }
+    }
+    
+    private func stopStatusBarUpdateTimer() {
+        statusBarUpdateTimer?.invalidate()
+        statusBarUpdateTimer = nil
+    }
+    
+    private func updateStatusBarDisplay() {
+        guard let button = statusItem.button else { return }
+        
+        // 检查当前数据源的价格是否可用
+        let currentSource = dataService.currentSource
+        let isAvailable = dataService.allSourcePriceAvailability[currentSource] ?? false
+        
+        if !isAvailable {
+            button.title = "G0.00"
+        } else if let price = dataService.allSourcePrices[currentSource] {
+            // 京东金融显示小数，其他金店显示整数
+            if currentSource == .jdFinance {
+                button.title = "G\(String(format: "%.2f", price))"
+            } else {
+                button.title = "G\(Int(price))"
+            }
+        } else {
+            button.title = "G0.00"
+        }
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {
