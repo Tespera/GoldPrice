@@ -63,8 +63,10 @@ class GoldPriceService: ObservableObject {
     @Published var allSourcePriceAvailability: [GoldPriceSource: Bool] = [:]
     
     private var timer: Timer?
-    private let refreshInterval: TimeInterval = 1   // 每1s刷新一次
+    private let jdAndShuibeiRefreshInterval: TimeInterval = 1   // 京东和水贝每1s刷新一次
+    private let brandStoreRefreshInterval: TimeInterval = 60    // 金店每1分钟刷新一次
     private var currentFetchingSource: GoldPriceSource?
+    private var lastBrandStoreFetchTime: Date = Date(timeIntervalSince1970: 0)
     
     init() {}
     
@@ -78,13 +80,17 @@ class GoldPriceService: ObservableObject {
         if availableBrands.isEmpty {
             fetchBrandList { [weak self] in
                 self?.fetchAllSourcesPricesParallel()
+                // 初始化时立即获取所有数据源的价格
+                self?.lastBrandStoreFetchTime = Date()
             }
         } else {
             fetchAllSourcesPricesParallel()
+            // 初始化时立即获取所有数据源的价格
+            lastBrandStoreFetchTime = Date()
         }
         
-        timer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
-            self?.fetchAllSourcesPricesParallel()
+        timer = Timer.scheduledTimer(withTimeInterval: jdAndShuibeiRefreshInterval, repeats: true) { [weak self] _ in
+            self?.fetchAllSourcesPricesWithDifferentIntervals()
         }
     }
     
@@ -119,6 +125,27 @@ class GoldPriceService: ObservableObject {
     func fetchAllSourcesPricesParallel() {
         for source in GoldPriceSource.allCases {
             fetchPriceForSource(source)
+        }
+    }
+    
+    func fetchAllSourcesPricesWithDifferentIntervals() {
+        let currentTime = Date()
+        
+        // 京东和水贝每次都刷新
+        fetchPriceForSource(.jdFinance)
+        fetchPriceForSource(.shuibeiGold)
+        
+        // 金店类型的数据源：检查是否已经过了1分钟
+        if currentTime.timeIntervalSince(lastBrandStoreFetchTime) >= brandStoreRefreshInterval {
+            let brandSources: [GoldPriceSource] = [.zhouDaFu, .zhouLiuFu, .zhouDaSheng, .zhouShengSheng, 
+                                                   .chaoHongJi, .laoFengXiang, .zhongGuoHuangJin, .liuFuJewelry, 
+                                                   .laoMiao, .caiBai]
+            
+            for source in brandSources {
+                fetchPriceForSource(source)
+            }
+            
+            lastBrandStoreFetchTime = currentTime
         }
     }
     
