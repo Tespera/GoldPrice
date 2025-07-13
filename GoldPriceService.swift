@@ -129,12 +129,17 @@ class GoldPriceService: ObservableObject {
     }
     
     // 强制刷新所有数据源（忽略时间限制）
-    func forceRefreshAllSources() {
+    func forceRefreshAllSources(completion: (() -> Void)? = nil) {
         for source in GoldPriceSource.allCases {
             fetchPriceForSource(source)
         }
         // 更新金店刷新时间，确保下次正常刷新
         lastBrandStoreFetchTime = Date()
+        
+        // 如果有回调，立即调用（因为数据会异步更新，这里主要是为了触发UI刷新）
+        DispatchQueue.main.async {
+            completion?()
+        }
     }
     
     func fetchAllSourcesPricesWithDifferentIntervals() {

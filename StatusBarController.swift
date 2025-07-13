@@ -259,11 +259,30 @@ class StatusBarController: NSObject, NSMenuDelegate {
     
     // MARK: - NSMenuDelegate
     func menuWillOpen(_ menu: NSMenu) {
-        // 当数据源菜单打开时，立即刷新一次数据
+        // 当数据源菜单打开时，立即刷新一次数据并更新菜单显示
         if menu == statusItem.menu?.item(withTitle: "数据源")?.submenu {
             print("数据源菜单打开，立即刷新数据")
+            
+            // 立即更新一次菜单显示（显示当前缓存的数据）
+            updateMenuPrices()
+            
+            // 开始刷新数据
             dataService.forceRefreshAllSources()
+            
+            // 延迟一小段时间后再次更新菜单，让新数据有时间加载
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.updateMenuPrices()
+            }
+            
+            // 再延迟一点时间再次更新（处理较慢的网络请求）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.updateMenuPrices()
+            }
         }
+    }
+    
+    func menuDidClose(_ menu: NSMenu) {
+        // 菜单关闭后可以进行一些清理工作（如果需要）
     }
 
 }
