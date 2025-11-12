@@ -149,6 +149,11 @@ class StatusBarController: NSObject, NSMenuDelegate {
             // 保存菜单项引用，用于后续更新
             sourceMenuItems[source] = sourceItem
             
+            // 在京东金融后添加分隔符
+            if source == .jdFinance {
+                sourcesMenu.addItem(NSMenuItem.separator())
+            }
+            
             // 在水贝黄金后添加分隔符
             if source == .shuibeiGold {
                 sourcesMenu.addItem(NSMenuItem.separator())

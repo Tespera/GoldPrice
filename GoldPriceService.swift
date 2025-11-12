@@ -61,9 +61,11 @@ class GoldPriceService: ObservableObject {
     @Published var allSourcePriceAvailability: [GoldPriceSource: Bool] = [:]
     
     private var timer: Timer?
-    private let jdAndShuibeiRefreshInterval: TimeInterval = 1   // 京东和水贝每1s刷新一次
+    private let jdRefreshInterval: TimeInterval = 1        // 京东每1s刷新一次
+    private let shuibeiRefreshInterval: TimeInterval = 60  // 水贝每1分钟刷新一次
     private let brandStoreRefreshInterval: TimeInterval = 60    // 金店每1分钟刷新一次
     private var currentFetchingSource: GoldPriceSource?
+    private var lastShuibeiFetchTime: Date = Date(timeIntervalSince1970: 0)
     private var lastBrandStoreFetchTime: Date = Date(timeIntervalSince1970: 0)
     
     init() {}
@@ -84,10 +86,12 @@ class GoldPriceService: ObservableObject {
         } else {
             fetchAllSourcesPricesParallel()
             // 初始化时立即获取所有数据源的价格
+            // 更新水贝和金店刷新时间，确保下次正常刷新
+            lastShuibeiFetchTime = Date()
             lastBrandStoreFetchTime = Date()
         }
         
-        timer = Timer.scheduledTimer(withTimeInterval: jdAndShuibeiRefreshInterval, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: jdRefreshInterval, repeats: true) { [weak self] _ in
             self?.fetchAllSourcesPricesWithDifferentIntervals()
         }
     }
@@ -141,11 +145,16 @@ class GoldPriceService: ObservableObject {
     func fetchAllSourcesPricesWithDifferentIntervals() {
         let currentTime = Date()
         
-        // 京东和水贝每次都刷新
+        // 京东每次都刷新（因为定时器间隔就是京东的刷新间隔）
         fetchPriceForSource(.jdFinance)
-        fetchPriceForSource(.shuibeiGold)
         
-        // 金店类型的数据源：检查是否已经过了1分钟
+        // 水贝：检查是否已经过了指定的刷新间隔
+        if currentTime.timeIntervalSince(lastShuibeiFetchTime) >= shuibeiRefreshInterval {
+            fetchPriceForSource(.shuibeiGold)
+            lastShuibeiFetchTime = currentTime
+        }
+        
+        // 金店类型的数据源：检查是否已经过了指定的刷新间隔
         if currentTime.timeIntervalSince(lastBrandStoreFetchTime) >= brandStoreRefreshInterval {
             let brandSources: [GoldPriceSource] = [.zhouDaFu, .zhouLiuFu, .zhouDaSheng, .zhouShengSheng, 
                                                    .chaoHongJi, .laoFengXiang, .zhongGuoHuangJin, .liuFuJewelry, 
@@ -238,7 +247,7 @@ class GoldPriceService: ObservableObject {
     }
     
     private func fetchShuibeiGoldPrice(for targetSource: GoldPriceSource? = nil) {
-        let urlString = "http://www.jinrijinjia.cn/shuibei/"
+        let urlString = "https://www.guijinshu.com/plugin.php?id=study_dz_goldapi"
         
         guard let url = URL(string: urlString) else {
             self.handleFetchError("无效的URL", source: .shuibeiGold, for: targetSource)
@@ -265,7 +274,7 @@ class GoldPriceService: ObservableObject {
             }
             
             if let htmlString = String(data: data, encoding: .utf8) {
-                if let price = self.extractGoldPriceFromJinrijinjia(htmlString) {
+                if let price = self.extractShuibeiGoldPriceFromGuijinshu(htmlString) {
                     DispatchQueue.main.async {
                         let sourceToUpdate = targetSource ?? .shuibeiGold
                         self.allSourcePrices[sourceToUpdate] = price
@@ -280,7 +289,7 @@ class GoldPriceService: ObservableObject {
                     return
                 }
             } else if let htmlString = String(data: data, encoding: .isoLatin1) {
-                if let price = self.extractGoldPriceFromJinrijinjia(htmlString) {
+                if let price = self.extractShuibeiGoldPriceFromGuijinshu(htmlString) {
                     DispatchQueue.main.async {
                         let sourceToUpdate = targetSource ?? .shuibeiGold
                         self.allSourcePrices[sourceToUpdate] = price
@@ -324,6 +333,26 @@ class GoldPriceService: ObservableObject {
                     if let price = Double(priceString) {
                         return price
                     }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractShuibeiGoldPriceFromGuijinshu(_ html: String) -> Double? {
+        // 匹配水贝黄金价格的正则表达式
+        // 格式: <div>水贝黄金</div> <div class="people-li__price" style=""><a href="..." style="color: #FF0000;">979元/克</a></div>
+        let pattern = "<div>水贝黄金</div>\\s*<div[^>]*>\\s*<a[^>]*>\\s*(\\d+(?:\\.\\d+)?)元/克\\s*</a>"
+        
+        if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+            let nsString = html as NSString
+            let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: nsString.length))
+            
+            if let match = matches.first, match.numberOfRanges > 1 {
+                let priceString = nsString.substring(with: match.range(at: 1))
+                if let price = Double(priceString) {
+                    return price
                 }
             }
         }
