@@ -62,8 +62,8 @@ class GoldPriceService: ObservableObject {
     
     private var timer: Timer?
     private let jdRefreshInterval: TimeInterval = 1        // 京东每1s刷新一次
-    private let shuibeiRefreshInterval: TimeInterval = 60  // 水贝每1分钟刷新一次
-    private let brandStoreRefreshInterval: TimeInterval = 60    // 金店每1分钟刷新一次
+    private let shuibeiRefreshInterval: TimeInterval = 300  // 水贝每5分钟刷新一次
+    private let brandStoreRefreshInterval: TimeInterval = 300    // 金店每5分钟刷新一次
     private var currentFetchingSource: GoldPriceSource?
     private var lastShuibeiFetchTime: Date = Date(timeIntervalSince1970: 0)
     private var lastBrandStoreFetchTime: Date = Date(timeIntervalSince1970: 0)
@@ -320,7 +320,8 @@ class GoldPriceService: ObservableObject {
             "(\\d+)\\s*元/克",
             "黄金价格\\s*(\\d+)元/克",
             "深圳水贝今日黄金最新价[\\s\\n]*#?\\s*(\\d+)",
-            "水贝\\s*黄金价格\\s*(\\d+)元/克\\s*\\d{4}-\\d{1,2}-\\d{1,2}"
+            "水贝\\s*黄金价格\\s*(\\d+)元/克\\s*\\d{4}-\\d{1,2}-\\d{1,2}",
+            "水贝首饰金\\s*(\\d+)元/克\\s*\\d{4}-\\d{1,2}-\\d{1,2}"
         ]
         
         for pattern in patterns {
@@ -343,7 +344,7 @@ class GoldPriceService: ObservableObject {
     private func extractShuibeiGoldPriceFromGuijinshu(_ html: String) -> Double? {
         // 匹配水贝黄金价格的正则表达式
         // 格式: <div>水贝黄金</div> <div class="people-li__price" style=""><a href="..." style="color: #FF0000;">979元/克</a></div>
-        let pattern = "<div>水贝黄金</div>\\s*<div[^>]*>\\s*<a[^>]*>\\s*(\\d+(?:\\.\\d+)?)元/克\\s*</a>"
+        let pattern = "<div>水贝首饰金</div>\\s*<div[^>]*>\\s*<a[^>]*>\\s*(\\d+(?:\\.\\d+)?)元/克\\s*</a>"
         
         if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
             let nsString = html as NSString
