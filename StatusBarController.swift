@@ -10,6 +10,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
     private var statusBarUpdateTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var sourceMenuItems: [GoldPriceSource: NSMenuItem] = [:]
+    private let shuibeiDetailItemTag = 1001
     
     override init() {
         statusBar = NSStatusBar.system
@@ -59,6 +60,14 @@ class StatusBarController: NSObject, NSMenuDelegate {
             .sink { [weak self] _ in
                 self?.updateMenuPrices()
                 self?.updateStatusBarDisplay()
+            }
+            .store(in: &cancellables)
+            
+        // 订阅水贝详情价格更新
+        dataService.$shuibeiDetailPrices
+            .receive(on: RunLoop.main)
+            .sink { [weak self] prices in
+                self?.updateShuibeiMenuItems(prices)
             }
             .store(in: &cancellables)
         
@@ -256,6 +265,85 @@ class StatusBarController: NSObject, NSMenuDelegate {
         attributedTitle.append(priceAttr)
         
         menuItem.attributedTitle = attributedTitle
+    }
+    
+    // 更新水贝相关菜单项（平级显示）
+    private func updateShuibeiMenuItems(_ prices: [ShuibeiMarketPrice]) {
+        guard let menu = statusItem.menu,
+              let dataSourceItem = menu.item(withTitle: "数据源"),
+              let sourcesMenu = dataSourceItem.submenu else { return }
+        
+        // 1. 清理旧的详情项
+        // 先收集需要删除的项，避免在遍历时修改集合
+        let itemsToRemove = sourcesMenu.items.filter { $0.tag == shuibeiDetailItemTag }
+        for item in itemsToRemove {
+            sourcesMenu.removeItem(item)
+        }
+        
+        // 2. 如果没有数据，直接返回
+        if prices.isEmpty { return }
+        
+        // 3. 找到“水贝黄金”菜单项的位置
+        // sourceMenuItems 存储了所有枚举对应的菜单项
+        guard let shuibeiItem = sourceMenuItems[.shuibeiGold] else { return }
+        let shuibeiIndex = sourcesMenu.index(of: shuibeiItem)
+        
+        guard shuibeiIndex >= 0 else { return }
+        
+        // 4. 在“水贝黄金”后面插入详情项
+        // 插入位置从水贝黄金的下一项开始
+        var insertIndex = shuibeiIndex + 1
+        
+        // 添加各个市场的价格
+        for price in prices {
+            // 使用制表符对齐
+            let namePart = "    \(price.name)"
+            let pricePart = "\(Int(price.price)) 元/克"
+            
+            let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            item.tag = shuibeiDetailItemTag
+            item.isEnabled = false // 纯展示，不可点击
+            
+            // 设置样式，使其看起来像附属项
+            let attrTitle = NSMutableAttributedString()
+            
+            // 名字部分
+            attrTitle.append(NSAttributedString(string: namePart, attributes: [
+                .font: NSFont.systemFont(ofSize: 12),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]))
+            
+            // 间距部分（使用多个制表符以确保右对齐效果）
+            attrTitle.append(NSAttributedString(string: "\t\t"))
+            
+            // 价格部分
+            attrTitle.append(NSAttributedString(string: pricePart, attributes: [
+                .font: NSFont.systemFont(ofSize: 12),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]))
+            
+            item.attributedTitle = attrTitle
+            
+            sourcesMenu.insertItem(item, at: insertIndex)
+            insertIndex += 1
+        }
+        
+        // 添加更新时间
+        if let first = prices.first {
+            let timeTitle = "    更新时间: \(first.time)"
+            let timeItem = NSMenuItem(title: timeTitle, action: nil, keyEquivalent: "")
+            timeItem.tag = shuibeiDetailItemTag
+            timeItem.isEnabled = false
+            
+            let attrTimeTitle = NSMutableAttributedString(string: timeTitle)
+            attrTimeTitle.addAttributes([
+                .font: NSFont.systemFont(ofSize: 12),
+                .foregroundColor: NSColor.tertiaryLabelColor
+            ], range: NSRange(location: 0, length: timeTitle.count))
+            timeItem.attributedTitle = attrTimeTitle
+            
+            sourcesMenu.insertItem(timeItem, at: insertIndex)
+        }
     }
     
     // 更新菜单中的价格显示

@@ -21,6 +21,13 @@ struct GoldBrand {
     let name: String
 }
 
+struct ShuibeiMarketPrice: Identifiable {
+    let id = UUID()
+    let name: String
+    let price: Double
+    let time: String
+}
+
 extension GoldPriceSource {
     var brandKeyword: String? {
         switch self {
@@ -56,6 +63,7 @@ class GoldPriceService: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var availableBrands: [GoldBrand] = []
     @Published var selectedBrand: GoldBrand?
+    @Published var shuibeiDetailPrices: [ShuibeiMarketPrice] = []
     
     @Published var allSourcePrices: [GoldPriceSource: Double] = [:]
     @Published var allSourcePriceAvailability: [GoldPriceSource: Bool] = [:]
@@ -247,7 +255,7 @@ class GoldPriceService: ObservableObject {
     }
     
     private func fetchShuibeiGoldPrice(for targetSource: GoldPriceSource? = nil) {
-        let urlString = "https://www.guijinshu.com/plugin.php?id=study_dz_goldapi"
+        let urlString = "https://cngoldprice.com/"
         
         guard let url = URL(string: urlString) else {
             self.handleFetchError("无效的URL", source: .shuibeiGold, for: targetSource)
@@ -257,8 +265,6 @@ class GoldPriceService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
-        request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "Accept-Language")
         
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
@@ -274,38 +280,30 @@ class GoldPriceService: ObservableObject {
             }
             
             if let htmlString = String(data: data, encoding: .utf8) {
-                if let price = self.extractShuibeiGoldPriceFromGuijinshu(htmlString) {
+                let prices = self.extractShuibeiGoldPricesFromCnGoldPrice(htmlString)
+                
+                if !prices.isEmpty {
+                    // 计算均价
+                    let total = prices.reduce(0.0) { $0 + $1.price }
+                    let average = total / Double(prices.count)
+                    // 保留两位小数
+                    let roundedAverage = (average * 100).rounded() / 100
+                    
                     DispatchQueue.main.async {
+                        self.shuibeiDetailPrices = prices
+                        
                         let sourceToUpdate = targetSource ?? .shuibeiGold
-                        self.allSourcePrices[sourceToUpdate] = price
+                        self.allSourcePrices[sourceToUpdate] = roundedAverage
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
                         if targetSource == nil || sourceToUpdate == self.currentSource {
                             self.lastUpdateTime = Date()
                             self.isLoading = false
                         }
-                        print("水贝金价获取成功: \(price)")
+                        print("水贝金价获取成功: 均价 \(roundedAverage), 共 \(prices.count) 个市场数据")
                     }
                     return
                 }
-            } else if let htmlString = String(data: data, encoding: .isoLatin1) {
-                if let price = self.extractShuibeiGoldPriceFromGuijinshu(htmlString) {
-                    DispatchQueue.main.async {
-                        let sourceToUpdate = targetSource ?? .shuibeiGold
-                        self.allSourcePrices[sourceToUpdate] = price
-                        self.allSourcePriceAvailability[sourceToUpdate] = true
-                        
-                        if targetSource == nil || sourceToUpdate == self.currentSource {
-                            self.lastUpdateTime = Date()
-                            self.isLoading = false
-                        }
-                        print("水贝金价获取成功: \(price)")
-                    }
-                    return
-                }
-            } else {
-                self.handleFetchError("无法解析HTML编码", source: .shuibeiGold, for: targetSource)
-                return
             }
             
             self.handleFetchError("无法从网站提取价格数据", source: .shuibeiGold, for: targetSource)
@@ -341,24 +339,32 @@ class GoldPriceService: ObservableObject {
         return nil
     }
     
-    private func extractShuibeiGoldPriceFromGuijinshu(_ html: String) -> Double? {
-        // 匹配水贝黄金价格的正则表达式
-        // 格式: <div>水贝黄金</div> <div class="people-li__price" style=""><a href="..." style="color: #FF0000;">979元/克</a></div>
-        let pattern = "<div>水贝首饰金</div>\\s*<div[^>]*>\\s*<a[^>]*>\\s*(\\d+(?:\\.\\d+)?)元/克\\s*</a>"
+    private func extractShuibeiGoldPricesFromCnGoldPrice(_ html: String) -> [ShuibeiMarketPrice] {
+        var prices: [ShuibeiMarketPrice] = []
         
-        if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+        // 匹配表格行：
+        // <td ...>水贝特力</td> <td ...>1105</td> <td ...>938</td> <td ...>2025...</td>
+        // 使用宽松的正则匹配
+        let pattern = "<td[^>]*>\\s*(水贝[^<]+)\\s*</td>\\s*<td[^>]*>\\s*(\\d+(?:\\.\\d+)?)\\s*</td>\\s*<td[^>]*>\\s*.*?\\s*</td>\\s*<td[^>]*>\\s*([^<]+)\\s*</td>"
+        
+        if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators, .caseInsensitive]) {
             let nsString = html as NSString
             let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: nsString.length))
             
-            if let match = matches.first, match.numberOfRanges > 1 {
-                let priceString = nsString.substring(with: match.range(at: 1))
-                if let price = Double(priceString) {
-                    return price
+            for match in matches {
+                if match.numberOfRanges >= 4 {
+                    let name = nsString.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    let priceString = nsString.substring(with: match.range(at: 2))
+                    let time = nsString.substring(with: match.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if let price = Double(priceString) {
+                        prices.append(ShuibeiMarketPrice(name: name, price: price, time: time))
+                    }
                 }
             }
         }
         
-        return nil
+        return prices
     }
     
     private func fetchZhongGuoHuangJinGoldPrice(for targetSource: GoldPriceSource? = nil) {

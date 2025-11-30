@@ -75,6 +75,34 @@ struct GoldPriceView: View {
             }
             .padding(.horizontal, 16)
             
+            if dataService.currentSource == .shuibeiGold && !dataService.shuibeiDetailPrices.isEmpty {
+                Divider()
+                
+                Text("水贝市场详情:")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 16)
+                    
+                ScrollView {
+                    LazyVStack(spacing: 4) {
+                        ForEach(dataService.shuibeiDetailPrices) { item in
+                            HStack {
+                                Text(item.name)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.black)
+                                Spacer()
+                                Text("\(Int(item.price))")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.black)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+                .frame(maxHeight: 100)
+            }
+            
             Divider()
             
             // 数据源选择
@@ -145,7 +173,7 @@ struct GoldPriceView: View {
             .buttonStyle(PlainButtonStyle())
             .padding(.bottom, 16)
         }
-        .frame(width: 300, height: 350)
+        .frame(width: 300, height: 450)
         .background(Color.white)
     }
 }
