@@ -104,7 +104,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
             button.title = "G0.00"
         } else if let price = dataService.allSourcePrices[currentSource] {
             // 京东金融显示小数，其他金店显示整数
-            if currentSource == .jdFinance {
+            if currentSource == .jdZsFinance || currentSource == .jdMsFinance { // Apply decimal format to all JD sources
                 button.title = "G\(String(format: "%.2f", price))"
             } else {
                 button.title = "G\(Int(price))"
@@ -158,8 +158,8 @@ class StatusBarController: NSObject, NSMenuDelegate {
             // 保存菜单项引用，用于后续更新
             sourceMenuItems[source] = sourceItem
             
-            // 在京东金融后添加分隔符
-            if source == .jdFinance {
+            // 在京东系数据源后添加分隔符
+            if source == .jdMsFinance { // Separator after the last JD source
                 sourcesMenu.addItem(NSMenuItem.separator())
             }
             
@@ -214,7 +214,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
             
             // 价格数字部分
             let priceString: String
-            if source == .jdFinance {
+            if source == .jdZsFinance || source == .jdMsFinance {
                 priceString = String(format: "%.2f", price)
             } else {
                 priceString = String(format: "%d", Int(price))
