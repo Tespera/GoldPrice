@@ -2,7 +2,8 @@ import Foundation
 import Combine
 
 enum GoldPriceSource: String, CaseIterable {
-    case jdFinance = "京东金融"
+    case jdZsFinance = "京东浙商"
+    case jdMsFinance = "京东民生"
     case shuibeiGold = "水贝黄金"
     case zhouDaFu = "周大福"
     case zhouLiuFu = "周六福"
@@ -31,8 +32,10 @@ struct ShuibeiMarketPrice: Identifiable {
 extension GoldPriceSource {
     var brandKeyword: String? {
         switch self {
-        case .jdFinance, .shuibeiGold:
+        case .jdZsFinance, .shuibeiGold:
             return nil
+        case .jdMsFinance:
+            return "京东民生"
         case .zhouDaFu:
             return "周大福"
         case .zhouLiuFu:
@@ -58,7 +61,7 @@ extension GoldPriceSource {
 }
 
 class GoldPriceService: ObservableObject {
-    @Published var currentSource: GoldPriceSource = .jdFinance
+    @Published var currentSource: GoldPriceSource = .jdZsFinance
     @Published var lastUpdateTime: Date = Date()
     @Published var isLoading: Bool = false
     @Published var availableBrands: [GoldBrand] = []
@@ -118,8 +121,10 @@ class GoldPriceService: ObservableObject {
         isLoading = true
         
         switch currentSource {
-        case .jdFinance:
-            fetchJDFinanceGoldPrice()
+        case .jdZsFinance:
+            fetchJDZsFinanceGoldPrice()
+        case .jdMsFinance: // New case
+            fetchJDMsFinanceGoldPrice()
         case .shuibeiGold:
             fetchShuibeiGoldPrice()
         case .zhongGuoHuangJin:
@@ -154,7 +159,8 @@ class GoldPriceService: ObservableObject {
         let currentTime = Date()
         
         // 京东每次都刷新（因为定时器间隔就是京东的刷新间隔）
-        fetchPriceForSource(.jdFinance)
+        fetchPriceForSource(.jdZsFinance)
+        fetchPriceForSource(.jdMsFinance) // New line
         
         // 水贝：检查是否已经过了指定的刷新间隔
         if currentTime.timeIntervalSince(lastShuibeiFetchTime) >= shuibeiRefreshInterval {
@@ -179,8 +185,10 @@ class GoldPriceService: ObservableObject {
 
     private func fetchPriceForSource(_ source: GoldPriceSource) {
         switch source {
-        case .jdFinance:
-            fetchJDFinanceGoldPrice(for: source)
+        case .jdZsFinance:
+            fetchJDZsFinanceGoldPrice(for: source)
+        case .jdMsFinance: // New case
+            fetchJDMsFinanceGoldPrice(for: source)
         case .shuibeiGold:
             fetchShuibeiGoldPrice(for: source)
         case .zhongGuoHuangJin:
@@ -191,11 +199,11 @@ class GoldPriceService: ObservableObject {
         }
     }
     
-    private func fetchJDFinanceGoldPrice(for targetSource: GoldPriceSource? = nil) {
+    private func fetchJDZsFinanceGoldPrice(for targetSource: GoldPriceSource? = nil) {
         let urlString = "https://api.jdjygold.com/gw2/generic/jrm/h5/m/stdLatestPrice?productSku=1961543816"
         
         guard let url = URL(string: urlString) else {
-            self.handleFetchError("无效的URL", source: .jdFinance, for: targetSource)
+            self.handleFetchError("无效的URL", source: .jdZsFinance, for: targetSource)
             return
         }
         
@@ -203,12 +211,12 @@ class GoldPriceService: ObservableObject {
             guard let self = self else { return }
             
             if let error = error {
-                self.handleFetchError(error.localizedDescription, source: .jdFinance, for: targetSource)
+                self.handleFetchError(error.localizedDescription, source: .jdZsFinance, for: targetSource)
                 return
             }
             
             guard let data = data else {
-                self.handleFetchError("没有返回数据", source: .jdFinance, for: targetSource)
+                self.handleFetchError("没有返回数据", source: .jdZsFinance, for: targetSource)
                 return
             }
             
@@ -220,7 +228,7 @@ class GoldPriceService: ObservableObject {
                    let price = Double(priceStr) {
                     
                     DispatchQueue.main.async {
-                        let sourceToUpdate = targetSource ?? .jdFinance
+                        let sourceToUpdate = targetSource ?? .jdZsFinance
                         self.allSourcePrices[sourceToUpdate] = price
                         self.allSourcePriceAvailability[sourceToUpdate] = true
                         
@@ -228,13 +236,63 @@ class GoldPriceService: ObservableObject {
                             self.lastUpdateTime = Date()
                             self.isLoading = false
                         }
-                        print("京东金融金价获取成功: \(price)")
+                        print("京东浙商金价获取成功: \(price)")
                     }
                 } else {
-                    self.handleFetchError("无法解析黄金价格数据", source: .jdFinance, for: targetSource)
+                    self.handleFetchError("无法解析黄金价格数据", source: .jdZsFinance, for: targetSource)
                 }
             } catch {
-                self.handleFetchError("JSON解析错误: \(error.localizedDescription)", source: .jdFinance, for: targetSource)
+                self.handleFetchError("JSON解析错误: \(error.localizedDescription)", source: .jdZsFinance, for: targetSource)
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func fetchJDMsFinanceGoldPrice(for targetSource: GoldPriceSource? = nil) {
+        let urlString = "https://api.jdjygold.com/gw/generic/hj/h5/m/latestPrice?reqData={}"
+        
+        guard let url = URL(string: urlString) else {
+            self.handleFetchError("无效的URL", source: .jdMsFinance, for: targetSource)
+            return
+        }
+        
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                self.handleFetchError(error.localizedDescription, source: .jdMsFinance, for: targetSource)
+                return
+            }
+            
+            guard let data = data else {
+                self.handleFetchError("没有返回数据", source: .jdMsFinance, for: targetSource)
+                return
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let resultData = json["resultData"] as? [String: Any],
+                   let datas = resultData["datas"] as? [String: Any],
+                   let priceStr = datas["price"] as? String,
+                   let price = Double(priceStr) {
+                    
+                    DispatchQueue.main.async {
+                        let sourceToUpdate = targetSource ?? .jdMsFinance
+                        self.allSourcePrices[sourceToUpdate] = price
+                        self.allSourcePriceAvailability[sourceToUpdate] = true
+                        
+                        if targetSource == nil || sourceToUpdate == self.currentSource {
+                            self.lastUpdateTime = Date()
+                            self.isLoading = false
+                        }
+                        print("京东民生银行金价获取成功: \(price)")
+                    }
+                } else {
+                    self.handleFetchError("无法解析黄金价格数据", source: .jdMsFinance, for: targetSource)
+                }
+            } catch {
+                self.handleFetchError("JSON解析错误: \(error.localizedDescription)", source: .jdMsFinance, for: targetSource)
             }
         }
         

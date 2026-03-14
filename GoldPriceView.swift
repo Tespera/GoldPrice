@@ -35,7 +35,7 @@ struct GoldPriceView: View {
                    isAvailable,
                    let price = dataService.allSourcePrices[dataService.currentSource] {
                     // 根据数据源类型决定显示格式，界面中不需要固定宽度
-                    let formatString = dataService.currentSource == .jdFinance ? "G%.2f" : "G%.0f"
+                    let formatString = dataService.currentSource == .jdZsFinance || dataService.currentSource == .jdMsFinance ? "G%.2f" : "G%.0f"
                     Text(String(format: formatString, price))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.black)
