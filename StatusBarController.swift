@@ -33,7 +33,6 @@ class StatusBarController: NSObject, NSMenuDelegate {
             button.target = self
         }
         
-        dataService.fetchBrandList()
         setupMenu()
         
         // 订阅数据源更新
