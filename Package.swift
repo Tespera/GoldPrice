@@ -24,7 +24,9 @@ let package = Package(
                 ".DS_Store",
                 ".cursor/",
                 ".vscode/",
-                "README.md"
+                "README.md",
+                "CLAUDE.md",
+                ".github/"
             ]
         )
     ]
