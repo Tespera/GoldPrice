@@ -1,28 +1,19 @@
-import SwiftUI
 import AppKit
 
 @main
-struct GoldPriceApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var body: some Scene {
-        Settings {
-            EmptyView()
-        }
+struct GoldPriceApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
     }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusBarItem: NSStatusItem!
     private var statusBarController: StatusBarController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 初始化状态栏控制器
         statusBarController = StatusBarController()
-
-        // 关闭自动弹出的设置窗口
-        for window in NSApplication.shared.windows {
-            window.close()
-        }
     }
 }
