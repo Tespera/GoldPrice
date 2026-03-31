@@ -15,9 +15,14 @@ struct GoldPriceApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarItem: NSStatusItem!
     private var statusBarController: StatusBarController!
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 初始化状态栏控制器
         statusBarController = StatusBarController()
+
+        // 关闭自动弹出的设置窗口
+        for window in NSApplication.shared.windows {
+            window.close()
+        }
     }
 }
