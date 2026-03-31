@@ -11,6 +11,12 @@ class StatusBarController: NSObject, NSMenuDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var sourceMenuItems: [GoldPriceSource: NSMenuItem] = [:]
     private let shuibeiDetailItemTag = 1001
+    private let globalUpdateTimeTag = 1002
+    private let updateTimeDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return f
+    }()
     
     override init() {
         statusBar = NSStatusBar.system
@@ -67,6 +73,14 @@ class StatusBarController: NSObject, NSMenuDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] prices in
                 self?.updateShuibeiMenuItems(prices)
+            }
+            .store(in: &cancellables)
+
+        // 订阅非京东数据源更新时间
+        dataService.$lastNonJDUpdateTime
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateGlobalUpdateTime()
             }
             .store(in: &cancellables)
         
@@ -168,6 +182,14 @@ class StatusBarController: NSObject, NSMenuDelegate {
             }
         }
         
+        // 在数据源子菜单底部添加全局更新时间
+        sourcesMenu.addItem(NSMenuItem.separator())
+        let updateTimeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        updateTimeItem.tag = globalUpdateTimeTag
+        updateTimeItem.isEnabled = false
+        sourcesMenu.addItem(updateTimeItem)
+        updateGlobalUpdateTimeItem(updateTimeItem)
+
         // 数据源菜单项
         let dataSourceItem = NSMenuItem(title: "数据源", action: nil, keyEquivalent: "d")
         dataSourceItem.submenu = sourcesMenu
@@ -327,22 +349,6 @@ class StatusBarController: NSObject, NSMenuDelegate {
             insertIndex += 1
         }
         
-        // 添加更新时间
-        if let first = prices.first {
-            let timeTitle = "    更新时间: \(first.time)"
-            let timeItem = NSMenuItem(title: timeTitle, action: nil, keyEquivalent: "")
-            timeItem.tag = shuibeiDetailItemTag
-            timeItem.isEnabled = false
-            
-            let attrTimeTitle = NSMutableAttributedString(string: timeTitle)
-            attrTimeTitle.addAttributes([
-                .font: NSFont.systemFont(ofSize: 12),
-                .foregroundColor: NSColor.tertiaryLabelColor
-            ], range: NSRange(location: 0, length: timeTitle.count))
-            timeItem.attributedTitle = attrTimeTitle
-            
-            sourcesMenu.insertItem(timeItem, at: insertIndex)
-        }
     }
     
     // 更新菜单中的价格显示
@@ -352,6 +358,32 @@ class StatusBarController: NSObject, NSMenuDelegate {
         }
     }
     
+    // 更新全局更新时间显示
+    private func updateGlobalUpdateTime() {
+        guard let menu = statusItem.menu,
+              let dataSourceItem = menu.item(withTitle: "数据源"),
+              let sourcesMenu = dataSourceItem.submenu else { return }
+
+        if let timeItem = sourcesMenu.items.first(where: { $0.tag == globalUpdateTimeTag }) {
+            updateGlobalUpdateTimeItem(timeItem)
+        }
+    }
+
+    private func updateGlobalUpdateTimeItem(_ item: NSMenuItem) {
+        let timeString: String
+        if let updateTime = dataService.lastNonJDUpdateTime {
+            timeString = updateTimeDateFormatter.string(from: updateTime)
+        } else {
+            timeString = "--"
+        }
+        let title = "更新时间: \(timeString)"
+        let attrTitle = NSMutableAttributedString(string: title, attributes: [
+            .font: NSFont.systemFont(ofSize: 12),
+            .foregroundColor: NSColor.tertiaryLabelColor
+        ])
+        item.attributedTitle = attrTitle
+    }
+
     // MARK: - NSMenuDelegate
     func menuWillOpen(_ menu: NSMenu) {
         // 当数据源菜单打开时，立即刷新一次数据并更新菜单显示

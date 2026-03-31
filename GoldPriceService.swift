@@ -60,13 +60,12 @@ class GoldPriceService: ObservableObject {
 
     @Published var allSourcePrices: [GoldPriceSource: Double] = [:]
     @Published var allSourcePriceAvailability: [GoldPriceSource: Bool] = [:]
+    @Published var lastNonJDUpdateTime: Date?
 
     private var timer: Timer?
     private let jdRefreshInterval: TimeInterval = 1        // 京东每1s刷新一次
-    private let shuibeiRefreshInterval: TimeInterval = 300  // 水贝每5分钟刷新一次
-    private let brandStoreRefreshInterval: TimeInterval = 600    // 金店每10分钟刷新一次
-    private var lastShuibeiFetchTime: Date = Date(timeIntervalSince1970: 0)
-    private var lastBrandStoreFetchTime: Date = Date(timeIntervalSince1970: 0)
+    private let nonJDRefreshInterval: TimeInterval = 600   // 水贝和品牌金店每10分钟刷新一次
+    private var lastNonJDFetchTime: Date = Date(timeIntervalSince1970: 0)
 
     init() {}
 
@@ -77,8 +76,8 @@ class GoldPriceService: ObservableObject {
 
         fetchGoldPrice()
         fetchAllSourcesPricesParallel()
-        lastShuibeiFetchTime = Date()
-        lastBrandStoreFetchTime = Date()
+        lastNonJDFetchTime = Date()
+        lastNonJDUpdateTime = Date()
 
         timer = Timer.scheduledTimer(withTimeInterval: jdRefreshInterval, repeats: true) { [weak self] _ in
             self?.fetchAllSourcesPricesWithDifferentIntervals()
@@ -125,7 +124,8 @@ class GoldPriceService: ObservableObject {
     // 强制刷新所有数据源（忽略时间限制）
     func forceRefreshAllSources(completion: (() -> Void)? = nil) {
         fetchAllSourcesPricesParallel()
-        lastBrandStoreFetchTime = Date()
+        lastNonJDFetchTime = Date()
+        lastNonJDUpdateTime = Date()
 
         DispatchQueue.main.async {
             completion?()
@@ -139,17 +139,13 @@ class GoldPriceService: ObservableObject {
         fetchPriceForSource(.jdZsFinance)
         fetchPriceForSource(.jdMsFinance)
 
-        // 水贝：检查是否已经过了指定的刷新间隔
-        if currentTime.timeIntervalSince(lastShuibeiFetchTime) >= shuibeiRefreshInterval {
+        // 水贝和品牌金店：统一每10分钟刷新一次
+        if currentTime.timeIntervalSince(lastNonJDFetchTime) >= nonJDRefreshInterval {
             fetchPriceForSource(.shuibeiGold)
-            lastShuibeiFetchTime = currentTime
-        }
-
-        // 品牌金店：检查是否已经过了指定的刷新间隔，一次请求获取所有品牌价格
-        if currentTime.timeIntervalSince(lastBrandStoreFetchTime) >= brandStoreRefreshInterval {
             fetchCngoldBrandPrices()
             fetchPriceForSource(.zhongGuoHuangJin)
-            lastBrandStoreFetchTime = currentTime
+            lastNonJDFetchTime = currentTime
+            lastNonJDUpdateTime = currentTime
         }
     }
 

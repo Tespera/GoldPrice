@@ -61,20 +61,6 @@ struct GoldPriceView: View {
             }
             .padding(.horizontal, 16)
             
-            // 更新时间
-            HStack {
-                Text("更新时间:")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
-                
-                Spacer()
-                
-                Text(dateFormatter.string(from: dataService.lastUpdateTime))
-                    .font(.system(size: 14))
-                    .foregroundColor(.black)
-            }
-            .padding(.horizontal, 16)
-            
             if dataService.currentSource == .shuibeiGold && !dataService.shuibeiDetailPrices.isEmpty {
                 Divider()
                 
@@ -171,7 +157,18 @@ struct GoldPriceView: View {
                 .padding(.horizontal, 16)
             }
             .buttonStyle(PlainButtonStyle())
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
+
+            // 全局更新时间（水贝和品牌金店）
+            Divider()
+
+            if let nonJDTime = dataService.lastNonJDUpdateTime {
+                Text("更新时间: \(dateFormatter.string(from: nonJDTime))")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 8)
+            }
         }
         .frame(width: 300, height: 450)
         .background(Color.white)
